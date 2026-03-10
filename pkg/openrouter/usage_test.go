@@ -35,13 +35,25 @@ func TestFetchUsageLive(t *testing.T) {
 	}
 
 	if usage.Activity != nil {
-		t.Logf("endpoint IDs: %v", usage.Activity.EndpointIDs)
-		t.Logf("activity totals: spend=$%.2f requests=%.0f prompt_tokens=%.0f completion_tokens=%.0f reasoning_tokens=%.0f",
-			usage.Activity.Totals.Spend, usage.Activity.Totals.Requests,
-			usage.Activity.Totals.PromptTokens, usage.Activity.Totals.CompletionTokens, usage.Activity.Totals.ReasoningTokens)
-		for _, m := range usage.Activity.Models {
-			t.Logf("  model=%-40s spend=$%8.2f requests=%6.0f prompt=%10.0f completion=%10.0f reasoning=%10.0f",
-				m.Model, m.Spend, m.Requests, m.PromptTokens, m.CompletionTokens, m.ReasoningTokens)
+		logActivity(t, "all keys", usage.Activity)
+	}
+
+	if len(usage.APIKeys) > 0 {
+		t.Logf("API keys:")
+		for _, k := range usage.APIKeys {
+			t.Logf("  %-15s %s  total=$%.2f daily=$%.2f weekly=$%.2f monthly=$%.2f",
+				k.Name, k.Label, k.Usage, k.UsageDaily, k.UsageWeekly, k.UsageMonthly)
 		}
+	}
+}
+
+func logActivity(t *testing.T, label string, a *Activity) {
+	t.Helper()
+	t.Logf("[%s] spend=$%.2f requests=%.0f prompt=%.0f completion=%.0f reasoning=%.0f",
+		label, a.Totals.Spend, a.Totals.Requests,
+		a.Totals.PromptTokens, a.Totals.CompletionTokens, a.Totals.ReasoningTokens)
+	for _, m := range a.Models {
+		t.Logf("  model=%-40s spend=$%8.2f requests=%6.0f prompt=%10.0f completion=%10.0f reasoning=%10.0f",
+			m.Model, m.Spend, m.Requests, m.PromptTokens, m.CompletionTokens, m.ReasoningTokens)
 	}
 }

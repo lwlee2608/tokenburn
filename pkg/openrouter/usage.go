@@ -15,6 +15,7 @@ type Usage struct {
 	Key      KeyUsage
 	Credits  *Credits
 	Activity *Activity
+	APIKeys  []APIKey
 }
 
 type KeyUsage struct {
@@ -42,9 +43,17 @@ type Credits struct {
 }
 
 type Activity struct {
-	Totals      ActivityTotals
-	Models      []ModelUsage
-	EndpointIDs []string
+	Totals ActivityTotals
+	Models []ModelUsage
+}
+
+type APIKey struct {
+	Name         string
+	Label        string
+	Usage        float64
+	UsageDaily   float64
+	UsageWeekly  float64
+	UsageMonthly float64
 }
 
 type ActivityTotals struct {
@@ -92,13 +101,23 @@ type creditsResponse struct {
 	} `json:"data"`
 }
 
+type keysResponse struct {
+	Data []struct {
+		Name         string  `json:"name"`
+		Label        string  `json:"label"`
+		Usage        float64 `json:"usage"`
+		UsageDaily   float64 `json:"usage_daily"`
+		UsageWeekly  float64 `json:"usage_weekly"`
+		UsageMonthly float64 `json:"usage_monthly"`
+	} `json:"data"`
+}
+
 type activityResponse struct {
 	Data []activityItem `json:"data"`
 }
 
 type activityItem struct {
 	Model              string  `json:"model"`
-	EndpointID         string  `json:"endpoint_id"`
 	Usage              float64 `json:"usage"`
 	BYOKUsageInference float64 `json:"byok_usage_inference"`
 	Requests           float64 `json:"requests"`
@@ -107,7 +126,7 @@ type activityItem struct {
 	ReasoningTokens    float64 `json:"reasoning_tokens"`
 }
 
-func FetchUsage(auth *Auth, endpointID ...string) (*Usage, error) {
+func FetchUsage(auth *Auth) (*Usage, error) {
 	client := &http.Client{Timeout: 15 * time.Second}
 
 	key, err := fetchKey(client, auth)
@@ -130,16 +149,27 @@ func FetchUsage(auth *Auth, endpointID ...string) (*Usage, error) {
 		return nil, err
 	}
 
+	keys, err := fetchKeys(client, auth)
+	if err != nil {
+		return nil, err
+	}
+
 	usage.Credits = &Credits{
 		Total:     credits.Data.TotalCredits,
 		Used:      credits.Data.TotalUsage,
 		Remaining: credits.Data.TotalCredits - credits.Data.TotalUsage,
 	}
-	var filterKey string
-	if len(endpointID) > 0 {
-		filterKey = endpointID[0]
+	usage.Activity = buildActivity(activity.Data)
+	for _, k := range keys.Data {
+		usage.APIKeys = append(usage.APIKeys, APIKey{
+			Name:         k.Name,
+			Label:        k.Label,
+			Usage:        k.Usage,
+			UsageDaily:   k.UsageDaily,
+			UsageWeekly:  k.UsageWeekly,
+			UsageMonthly: k.UsageMonthly,
+		})
 	}
-	usage.Activity = buildActivity(activity.Data, filterKey)
 
 	return usage, nil
 }
@@ -164,14 +194,11 @@ func mapKeyUsage(response *keyResponse) KeyUsage {
 	}
 }
 
-func buildActivity(items []activityItem, endpointID string) *Activity {
+func buildActivity(items []activityItem) *Activity {
 	byModel := make(map[string]*ModelUsage, len(items))
 	activity := &Activity{}
 
 	for _, item := range items {
-		if endpointID != "" && item.EndpointID != endpointID {
-			continue
-		}
 		activity.Totals.Spend += item.Usage
 		activity.Totals.BYOKSpend += item.BYOKUsageInference
 		activity.Totals.Requests += item.Requests
@@ -204,15 +231,15 @@ func buildActivity(items []activityItem, endpointID string) *Activity {
 		return activity.Models[i].Spend > activity.Models[j].Spend
 	})
 
-	seen := make(map[string]bool)
-	for _, item := range items {
-		if !seen[item.EndpointID] {
-			seen[item.EndpointID] = true
-			activity.EndpointIDs = append(activity.EndpointIDs, item.EndpointID)
-		}
-	}
-
 	return activity
+}
+
+func fetchKeys(client *http.Client, auth *Auth) (*keysResponse, error) {
+	var result keysResponse
+	if err := doJSON(client, auth, http.MethodGet, baseURL+"/keys", &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 func fetchKey(client *http.Client, auth *Auth) (*keyResponse, error) {
