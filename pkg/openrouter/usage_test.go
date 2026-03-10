@@ -35,6 +35,7 @@ func TestFetchUsageLive(t *testing.T) {
 	}
 
 	if usage.Activity != nil {
+		t.Logf("endpoint IDs: %v", usage.Activity.EndpointIDs)
 		t.Logf("activity totals: spend=$%.2f requests=%.0f prompt_tokens=%.0f completion_tokens=%.0f reasoning_tokens=%.0f",
 			usage.Activity.Totals.Spend, usage.Activity.Totals.Requests,
 			usage.Activity.Totals.PromptTokens, usage.Activity.Totals.CompletionTokens, usage.Activity.Totals.ReasoningTokens)

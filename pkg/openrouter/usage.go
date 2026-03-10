@@ -42,8 +42,9 @@ type Credits struct {
 }
 
 type Activity struct {
-	Totals ActivityTotals
-	Models []ModelUsage
+	Totals      ActivityTotals
+	Models      []ModelUsage
+	EndpointIDs []string
 }
 
 type ActivityTotals struct {
@@ -97,6 +98,7 @@ type activityResponse struct {
 
 type activityItem struct {
 	Model              string  `json:"model"`
+	EndpointID         string  `json:"endpoint_id"`
 	Usage              float64 `json:"usage"`
 	BYOKUsageInference float64 `json:"byok_usage_inference"`
 	Requests           float64 `json:"requests"`
@@ -105,7 +107,7 @@ type activityItem struct {
 	ReasoningTokens    float64 `json:"reasoning_tokens"`
 }
 
-func FetchUsage(auth *Auth) (*Usage, error) {
+func FetchUsage(auth *Auth, endpointID ...string) (*Usage, error) {
 	client := &http.Client{Timeout: 15 * time.Second}
 
 	key, err := fetchKey(client, auth)
@@ -133,7 +135,11 @@ func FetchUsage(auth *Auth) (*Usage, error) {
 		Used:      credits.Data.TotalUsage,
 		Remaining: credits.Data.TotalCredits - credits.Data.TotalUsage,
 	}
-	usage.Activity = buildActivity(activity.Data)
+	var filterKey string
+	if len(endpointID) > 0 {
+		filterKey = endpointID[0]
+	}
+	usage.Activity = buildActivity(activity.Data, filterKey)
 
 	return usage, nil
 }
@@ -158,11 +164,14 @@ func mapKeyUsage(response *keyResponse) KeyUsage {
 	}
 }
 
-func buildActivity(items []activityItem) *Activity {
+func buildActivity(items []activityItem, endpointID string) *Activity {
 	byModel := make(map[string]*ModelUsage, len(items))
 	activity := &Activity{}
 
 	for _, item := range items {
+		if endpointID != "" && item.EndpointID != endpointID {
+			continue
+		}
 		activity.Totals.Spend += item.Usage
 		activity.Totals.BYOKSpend += item.BYOKUsageInference
 		activity.Totals.Requests += item.Requests
@@ -194,6 +203,14 @@ func buildActivity(items []activityItem) *Activity {
 		}
 		return activity.Models[i].Spend > activity.Models[j].Spend
 	})
+
+	seen := make(map[string]bool)
+	for _, item := range items {
+		if !seen[item.EndpointID] {
+			seen[item.EndpointID] = true
+			activity.EndpointIDs = append(activity.EndpointIDs, item.EndpointID)
+		}
+	}
 
 	return activity
 }
