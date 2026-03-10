@@ -9,17 +9,12 @@ A terminal dashboard for monitoring your [OpenAI Codex](https://chatgpt.com/code
 ## Install
 
 ```sh
-go install github.com/lwlee2608/tokenburn/cmd/tokenburn@latest
-```
-
-Or build from source:
-
-```sh
 git clone https://github.com/lwlee2608/tokenburn.git
 cd tokenburn
-make build
-./bin/tokenburn
+make install
 ```
+
+This installs the binary to `~/.local/bin/tokenburn`.
 
 ## Prerequisites
 
