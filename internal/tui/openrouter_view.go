@@ -64,7 +64,7 @@ func (m Model) orSection() string {
 	if u.Key.IsManagementKey {
 		b.WriteString(renderORCredits(u))
 		b.WriteString(renderORActivity(u))
-		b.WriteString(renderORModels(u))
+		b.WriteString(m.renderORModels(u))
 		b.WriteString(renderORKeys(u))
 	}
 
@@ -99,26 +99,62 @@ func renderORActivity(u *openrouter.Usage) string {
 	return b.String()
 }
 
-func renderORModels(u *openrouter.Usage) string {
+func (m Model) renderORModels(u *openrouter.Usage) string {
 	if u.Activity == nil || len(u.Activity.Models) == 0 {
 		return ""
 	}
 	var b strings.Builder
 	b.WriteByte('\n')
 	b.WriteString("  " + labelStyle.Render("Top Models") + "\n")
-	b.WriteString(dimStyle.Render(fmt.Sprintf("  %-42s  %10s  %9s", "Model", "Spend", "Requests")))
-	b.WriteByte('\n')
 
 	models := u.Activity.Models
 	if len(models) > maxModels {
 		models = models[:maxModels]
 	}
+
+	maxSpend := models[0].Spend
+	barWidth := m.modelBarWidth()
 	for _, m := range models {
-		b.WriteString(dimStyle.Render(fmt.Sprintf("  %-42s  $%9.4f  %9.0f",
-			truncate(m.Model, 42), m.Spend, m.Requests)))
+		label := truncate(m.Model, 28)
+		b.WriteString(dimStyle.Render(fmt.Sprintf("  %-28s  $%9.4f", label, m.Spend)))
+		b.WriteByte('\n')
+		b.WriteString(fmt.Sprintf("  %s  %s\n",
+			renderModelBar(m.Spend, maxSpend, barWidth),
+			dimStyle.Render(fmt.Sprintf("%.0f req", m.Requests)),
+		))
 		b.WriteByte('\n')
 	}
 	return b.String()
+}
+
+func (m Model) modelBarWidth() int {
+	w := m.width - 26
+	if w < 12 {
+		return 12
+	}
+	if w > 44 {
+		return 44
+	}
+	return w
+}
+
+func renderModelBar(spend, maxSpend float64, width int) string {
+	if width < 1 {
+		width = 1
+	}
+	filled := width
+	if maxSpend > 0 {
+		filled = int(spend / maxSpend * float64(width))
+	}
+	if spend > 0 && filled == 0 {
+		filled = 1
+	}
+	if filled > width {
+		filled = width
+	}
+
+	return modelBarFilledStyle.Render(strings.Repeat("█", filled)) +
+		modelBarEmptyStyle.Render(strings.Repeat("░", width-filled))
 }
 
 func renderORKeys(u *openrouter.Usage) string {
