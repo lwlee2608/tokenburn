@@ -1,6 +1,6 @@
 GO = $(shell which go 2>/dev/null)
 
-APP             := tokenburn
+APP             := tokentop
 VERSION         ?= v0.1.0
 LDFLAGS         := -ldflags "-X main.AppVersion=$(VERSION)"
 PREFIX          := $(HOME)/.local

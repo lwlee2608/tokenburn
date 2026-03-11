@@ -7,7 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/lwlee2608/tokenburn/pkg/codex"
+	"github.com/lwlee2608/tokentop/pkg/codex"
 )
 
 const (
@@ -84,8 +84,8 @@ func (m Model) barWidth() int {
 func (m Model) View() string {
 	var b strings.Builder
 
-	// Header — center "tokenburn <version>"
-	label := fmt.Sprintf(" tokenburn %s ", m.version)
+	// Header — center "tokentop <version>"
+	label := fmt.Sprintf(" tokentop %s ", m.version)
 	sideLen := (m.width - len(label) - 2) / 2 // -2 for ┌ and ┐
 	if sideLen < 0 {
 		sideLen = 0

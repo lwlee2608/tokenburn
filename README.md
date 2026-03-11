@@ -1,20 +1,20 @@
-# tokenburn
+# tokentop
 
-[![CI](https://github.com/lwlee2608/tokenburn/actions/workflows/ci.yml/badge.svg)](https://github.com/lwlee2608/tokenburn/actions/workflows/ci.yml)
+[![CI](https://github.com/lwlee2608/tokentop/actions/workflows/ci.yml/badge.svg)](https://github.com/lwlee2608/tokentop/actions/workflows/ci.yml)
 
 A terminal dashboard for monitoring your [OpenAI Codex](https://chatgpt.com/codex) usage limits in real time.
 
-![tokenburn screenshot](screenshot.jpg)
+![tokentop screenshot](screenshot.jpg)
 
 ## Install
 
 ```sh
-git clone https://github.com/lwlee2608/tokenburn.git
-cd tokenburn
+git clone https://github.com/lwlee2608/tokentop.git
+cd tokentop
 make install
 ```
 
-This installs the binary to `~/.local/bin/tokenburn`.
+This installs the binary to `~/.local/bin/tokentop`.
 
 ## Prerequisites
 

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/lwlee2608/tokenburn/internal/tui"
-	"github.com/lwlee2608/tokenburn/pkg/codex"
+	"github.com/lwlee2608/tokentop/internal/tui"
+	"github.com/lwlee2608/tokentop/pkg/codex"
 )
 
 var AppVersion = "dev"

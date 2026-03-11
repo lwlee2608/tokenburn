@@ -1,4 +1,4 @@
-module github.com/lwlee2608/tokenburn
+module github.com/lwlee2608/tokentop
 
 go 1.25.0
 
