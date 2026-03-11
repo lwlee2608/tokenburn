@@ -6,6 +6,10 @@ const barPadding = 30 // space taken by "  Used: XXX%  " + " XXX% free"
 
 var (
 	green  = lipgloss.Color("2")
+	cyan   = lipgloss.Color("6")
+	blue   = lipgloss.Color("12")
+	orange = lipgloss.Color("208")
+	pink   = lipgloss.Color("205")
 	yellow = lipgloss.Color("3")
 	red    = lipgloss.Color("1")
 	white  = lipgloss.Color("15")
@@ -22,6 +26,14 @@ func barFilledStyle(c lipgloss.Color) lipgloss.Style {
 }
 
 var barEmptyStyle = lipgloss.NewStyle().Background(gray)
+
+var modelBarEmptyStyle = lipgloss.NewStyle().Foreground(gray)
+
+var modelBarColors = []lipgloss.Color{cyan, blue, green, yellow, orange, pink, red}
+
+func modelBarFilledStyle(i int) lipgloss.Style {
+	return lipgloss.NewStyle().Foreground(modelBarColors[i%len(modelBarColors)])
+}
 
 func pctStyle(c lipgloss.Color) lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(c)

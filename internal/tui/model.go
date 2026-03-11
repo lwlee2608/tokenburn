@@ -228,57 +228,6 @@ func (m Model) codexSection() string {
 	return b.String()
 }
 
-func (m Model) orSection() string {
-	var b strings.Builder
-	b.WriteString(sectionStyle.Render(" OpenRouter"))
-	b.WriteByte('\n')
-
-	if m.orUsage == nil && m.orErr == "" {
-		b.WriteString(dimStyle.Render("  Loading..."))
-		b.WriteByte('\n')
-		return b.String()
-	}
-
-	if m.orErr != "" {
-		c := yellow
-		if m.orUsage == nil {
-			c = red
-		}
-		b.WriteString(pctStyle(c).Render(fmt.Sprintf("  ⚠️  %s (retry %d/%d)", m.orErr, m.orRetries, maxRetries)))
-		b.WriteByte('\n')
-		if m.orUsage == nil {
-			return b.String()
-		}
-	}
-
-	u := m.orUsage
-	bw := m.barWidth()
-
-	b.WriteString(dimStyle.Render(fmt.Sprintf("  Key: %s", u.Key.Label)))
-	b.WriteByte('\n')
-	b.WriteByte('\n')
-
-	if u.Key.Limit > 0 {
-		usedPct := (u.Key.Limit - u.Key.LimitRemaining) / u.Key.Limit * 100
-		b.WriteString(renderBar("Credit Limit", usedPct, bw,
-			fmt.Sprintf("$%.4f remaining (resets %s)", u.Key.LimitRemaining, u.Key.LimitReset),
-		))
-		b.WriteByte('\n')
-	}
-
-	b.WriteString(dimStyle.Render(fmt.Sprintf("  Usage — Daily: $%.4f | Weekly: $%.4f | Monthly: $%.4f",
-		u.Key.UsageDaily, u.Key.UsageWeekly, u.Key.UsageMonthly)))
-	b.WriteByte('\n')
-
-	if u.Credits != nil {
-		b.WriteString(dimStyle.Render(fmt.Sprintf("  Credits — Total: $%.4f | Used: $%.4f | Remaining: $%.4f",
-			u.Credits.Total, u.Credits.Used, u.Credits.Remaining)))
-		b.WriteByte('\n')
-	}
-
-	b.WriteByte('\n')
-	return b.String()
-}
 
 func (m Model) footer() string {
 	var ts string
