@@ -58,9 +58,11 @@ func (m Model) orSection() string {
 		b.WriteByte('\n')
 	}
 
-	b.WriteString(dimStyle.Render(fmt.Sprintf("  Usage — Daily: $%.4f | Weekly: $%.4f | Monthly: $%.4f",
-		u.Key.UsageDaily, u.Key.UsageWeekly, u.Key.UsageMonthly)))
-	b.WriteByte('\n')
+	if !u.Key.IsManagementKey {
+		b.WriteString(dimStyle.Render(fmt.Sprintf("  Usage — Daily: $%.4f | Weekly: $%.4f | Monthly: $%.4f",
+			u.Key.UsageDaily, u.Key.UsageWeekly, u.Key.UsageMonthly)))
+		b.WriteByte('\n')
+	}
 
 	if u.Key.IsManagementKey {
 		b.WriteString(renderORSummary(u))
