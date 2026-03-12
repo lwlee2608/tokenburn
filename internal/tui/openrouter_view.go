@@ -98,7 +98,7 @@ func renderORSummary(u *openrouter.Usage) string {
 }
 
 const (
-	chartMaxHeight = 10
+	chartMaxHeight = 16
 	chartMaxDays   = 30
 	chartTopModels = 6
 )
@@ -140,12 +140,14 @@ func (m Model) renderORDailyChart(u *openrouter.Usage) string {
 	// Pre-compute each column as an array of color indices (bottom to top)
 	const (
 		colWidth   = 2
-		gutterPad  = "         " // 9 spaces, left of the axis line
+		gutterPad  = "        " // 8 spaces, must match gutter visible width
 		gutter     = "  %5.0f │"
 		gutterBlnk = gutterPad + "│"
 		emptyCell  = -1
 	)
 	height := chartMaxHeight
+
+	othersColorIdx := len(topModels) % len(modelBarColors)
 
 	// columns[dayIdx][row] = color index, where row 0 = bottom
 	columns := make([][]int, len(days))
@@ -154,14 +156,19 @@ func (m Model) renderORDailyChart(u *openrouter.Usage) string {
 		for r := range col {
 			col[r] = emptyCell
 		}
-		totalCells := int(math.Round(day.Total / maxTotal * float64(height)))
-		if day.Total > 0 && totalCells == 0 {
-			totalCells = 1
+		if day.Total <= 0 {
+			columns[di] = col
+			continue
 		}
 
-		// Gather spend per top model + others, in stacking order
-		spendByModel := make(map[string]float64)
+		// Gather spend per segment: top models in order, then others
+		type segment struct {
+			colorIdx int
+			spend    float64
+		}
+		var segments []segment
 		var othersSpend float64
+		spendByModel := make(map[string]float64)
 		for _, model := range day.Models {
 			if topSet[model.Model] {
 				spendByModel[model.Model] += model.Spend
@@ -169,32 +176,51 @@ func (m Model) renderORDailyChart(u *openrouter.Usage) string {
 				othersSpend += model.Spend
 			}
 		}
-
-		// Fill cells bottom-up: each model gets cells proportional to its spend
-		cellIdx := 0
 		for i, name := range topModels {
-			spend := spendByModel[name]
-			if spend <= 0 {
-				continue
-			}
-			cells := int(math.Round(spend / maxTotal * float64(height)))
-			if cells == 0 {
-				cells = 1
-			}
-			for c := 0; c < cells && cellIdx < totalCells && cellIdx < height; c++ {
-				col[cellIdx] = i
-				cellIdx++
+			if s := spendByModel[name]; s > 0 {
+				segments = append(segments, segment{i, s})
 			}
 		}
-		// Others fill remaining cells
-		othersColor := len(topModels) % len(modelBarColors)
 		if othersSpend > 0 {
-			cells := int(math.Round(othersSpend / maxTotal * float64(height)))
-			if cells == 0 {
-				cells = 1
+			segments = append(segments, segment{othersColorIdx, othersSpend})
+		}
+
+		// Allocate cells using largest-remainder method
+		totalCells := int(math.Round(day.Total / maxTotal * float64(height)))
+		if totalCells == 0 {
+			totalCells = 1
+		}
+		if totalCells > height {
+			totalCells = height
+		}
+
+		cellCounts := make([]int, len(segments))
+		remainders := make([]float64, len(segments))
+		allocated := 0
+		for i, seg := range segments {
+			exact := seg.spend / day.Total * float64(totalCells)
+			cellCounts[i] = int(math.Floor(exact))
+			remainders[i] = exact - float64(cellCounts[i])
+			allocated += cellCounts[i]
+		}
+		// Distribute remaining cells to segments with largest remainders
+		for allocated < totalCells {
+			bestIdx := 0
+			for i := 1; i < len(remainders); i++ {
+				if remainders[i] > remainders[bestIdx] {
+					bestIdx = i
+				}
 			}
-			for c := 0; c < cells && cellIdx < totalCells && cellIdx < height; c++ {
-				col[cellIdx] = othersColor
+			cellCounts[bestIdx]++
+			remainders[bestIdx] = -1 // used up
+			allocated++
+		}
+
+		// Fill column bottom-up
+		cellIdx := 0
+		for i, seg := range segments {
+			for c := 0; c < cellCounts[i] && cellIdx < height; c++ {
+				col[cellIdx] = seg.colorIdx
 				cellIdx++
 			}
 		}
