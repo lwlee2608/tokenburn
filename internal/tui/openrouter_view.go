@@ -359,7 +359,7 @@ func (m Model) renderORModels(u *openrouter.Usage) string {
 	maxSpend := models[0].Spend
 	barWidth := m.modelBarWidth()
 	for i, model := range models {
-		label := truncate(model.Model, 22)
+		label := truncate(modelShortName(model.Model), 22)
 		b.WriteString(fmt.Sprintf("  %s  %s  %s  %s\n",
 			dimStyle.Render(fmt.Sprintf("%-22s", label)),
 			dimStyle.Render(fmt.Sprintf("$%7.2f", model.Spend)),
