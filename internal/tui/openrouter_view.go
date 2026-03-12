@@ -138,6 +138,12 @@ func (m Model) renderORDailyChart(u *openrouter.Usage) string {
 	}
 
 	// Build stacked columns: each day is a column of colored blocks
+	const (
+		colWidth   = 2
+		gutterPad  = "         " // 9 spaces, left of the axis line
+		gutter     = "  %5.0f │"
+		gutterBlnk = gutterPad + "│"
+	)
 	height := chartMaxHeight
 	var b strings.Builder
 	b.WriteByte('\n')
@@ -146,19 +152,19 @@ func (m Model) renderORDailyChart(u *openrouter.Usage) string {
 	// Y-axis labels + chart rows (top to bottom)
 	for row := height; row >= 1; row-- {
 		threshold := maxTotal * float64(row) / float64(height)
-		if row == height {
-			b.WriteString(dimStyle.Render(fmt.Sprintf("  $%5.0f │", maxTotal)))
-		} else if row == height/2 {
-			b.WriteString(dimStyle.Render(fmt.Sprintf("  $%5.0f │", maxTotal/2)))
-		} else if row == 1 {
-			b.WriteString(dimStyle.Render(fmt.Sprintf("  $%5.0f │", maxTotal/float64(height))))
-		} else {
-			b.WriteString(dimStyle.Render("        │"))
+		switch row {
+		case height:
+			b.WriteString(dimStyle.Render(fmt.Sprintf(gutter, maxTotal)))
+		case height / 2:
+			b.WriteString(dimStyle.Render(fmt.Sprintf(gutter, maxTotal/2)))
+		case 1:
+			b.WriteString(dimStyle.Render(fmt.Sprintf(gutter, maxTotal/float64(height))))
+		default:
+			b.WriteString(dimStyle.Render(gutterBlnk))
 		}
 
 		for _, day := range days {
 			if day.Total >= threshold {
-				// Determine which model "owns" this segment
 				colorIdx := segmentColor(day, threshold, maxTotal, float64(height), topModels, topSet)
 				b.WriteString(modelBarFilledStyle(colorIdx).Render("▐█"))
 			} else {
@@ -168,45 +174,39 @@ func (m Model) renderORDailyChart(u *openrouter.Usage) string {
 		b.WriteByte('\n')
 	}
 
-	// X-axis
-	b.WriteString(dimStyle.Render("        └" + strings.Repeat("──", len(days))))
+	// X-axis (matches gutter width)
+	b.WriteString(dimStyle.Render(gutterPad + "└" + strings.Repeat("──", len(days))))
 	b.WriteByte('\n')
 
-	// Date labels (show first, middle, last)
+	// Date labels — place at first, middle, last positions
 	if len(days) > 0 {
-		dateLineWidth := 2 * len(days)
-		dateLine := make([]byte, dateLineWidth)
-		for i := range dateLine {
-			dateLine[i] = ' '
-		}
-		labels := []int{0}
+		labelPositions := map[int]bool{0: true}
 		if len(days) > 2 {
-			labels = append(labels, len(days)/2)
+			labelPositions[len(days)/2] = true
 		}
 		if len(days) > 1 {
-			labels = append(labels, len(days)-1)
+			labelPositions[len(days)-1] = true
 		}
-		b.WriteString("         ")
+
+		var dateLine strings.Builder
+		dateLine.WriteString(gutterPad + " ") // match gutter + └
+		skip := 0
 		for i, day := range days {
-			isLabel := false
-			for _, li := range labels {
-				if i == li {
-					isLabel = true
-					break
-				}
+			if skip > 0 {
+				skip--
+				continue
 			}
-			if isLabel {
-				lbl := day.Date[5:] // "MM-DD"
-				b.WriteString(dimStyle.Render(lbl))
-				// Pad to maintain alignment
-				remaining := 2 - len(lbl)
-				if remaining > 0 {
-					b.WriteString(strings.Repeat(" ", remaining))
-				}
+			if labelPositions[i] {
+				lbl := shortDate(day.Date)
+				dateLine.WriteString(dimStyle.Render(lbl))
+				// How many column slots this label occupies beyond the first
+				extraSlots := (len(lbl) - 1) / colWidth
+				skip = extraSlots
 			} else {
-				b.WriteString("  ")
+				dateLine.WriteString(strings.Repeat(" ", colWidth))
 			}
 		}
+		b.WriteString(dateLine.String())
 		b.WriteByte('\n')
 	}
 
@@ -274,6 +274,14 @@ func topNModels(modelSpend map[string]float64, n int) []string {
 		result = append(result, all[i].model)
 	}
 	return result
+}
+
+func shortDate(date string) string {
+	// Handle "2026-03-10", "2026-03-10 00:00:00", "2026-03-10T00:00:00Z", etc.
+	if len(date) >= 10 {
+		return date[5:10] // "MM-DD"
+	}
+	return date
 }
 
 func modelShortName(model string) string {
