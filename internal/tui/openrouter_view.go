@@ -413,12 +413,12 @@ func renderORKeys(u *openrouter.Usage) string {
 		keys = keys[:maxKeys]
 	}
 	for _, k := range keys {
-		name := k.Label
-		if name == "" {
-			name = k.Name
+		display := k.Name
+		if k.Label != "" {
+			display = fmt.Sprintf("%s (%s)", k.Label, k.Name)
 		}
-		b.WriteString(dimStyle.Render(fmt.Sprintf("  %-18s d:$%6.2f  w:$%6.2f  m:$%6.2f",
-			truncate(name, 18), k.UsageDaily, k.UsageWeekly, k.UsageMonthly)))
+		b.WriteString(dimStyle.Render(fmt.Sprintf("  %-30s d:$%6.2f  w:$%6.2f  m:$%6.2f",
+			truncate(display, 30), k.UsageDaily, k.UsageWeekly, k.UsageMonthly)))
 		b.WriteByte('\n')
 	}
 	return b.String()
