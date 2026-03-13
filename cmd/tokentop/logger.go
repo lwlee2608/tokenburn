@@ -9,6 +9,10 @@ import (
 )
 
 func initLogger(logLevel, logPath string) (func() error, error) {
+	if strings.ToUpper(strings.TrimSpace(logLevel)) == "OFF" {
+		return func() error { return nil }, nil
+	}
+
 	level := parseLogLevel(logLevel)
 
 	if strings.TrimSpace(logPath) == "" {
