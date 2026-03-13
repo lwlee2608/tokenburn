@@ -1,0 +1,78 @@
+package tui
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/lwlee2608/tokentop/pkg/codex"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
+
+func (m Model) codexSection() string {
+	var b strings.Builder
+	b.WriteString(sectionStyle.Render(" Codex"))
+	b.WriteByte('\n')
+
+	if m.codexUsage == nil && m.codexErr == "" {
+		b.WriteString(dimStyle.Render("  Loading..."))
+		b.WriteByte('\n')
+		return b.String()
+	}
+
+	if m.codexErr != "" {
+		c := yellow
+		if m.codexUsage == nil {
+			c = red
+		}
+		b.WriteString(pctStyle(c).Render(fmt.Sprintf("  ⚠️  %s (retry %d/%d)", m.codexErr, m.codexRetries, maxRetries)))
+		b.WriteByte('\n')
+		if m.codexUsage == nil {
+			return b.String()
+		}
+	}
+
+	u := m.codexUsage
+	bw := m.barWidth()
+
+	credits := ""
+	if u.Credits.HasCredits {
+		bal := "n/a"
+		if u.Credits.Balance != nil {
+			bal = *u.Credits.Balance
+		}
+		credits = fmt.Sprintf(" | Credits: %s (unlimited: %v)", bal, u.Credits.Unlimited)
+	}
+	b.WriteString(dimStyle.Render(fmt.Sprintf("  Plan: %s%s", u.PlanType, credits)))
+	b.WriteByte('\n')
+	b.WriteByte('\n')
+
+	if w := u.RateLimit.PrimaryWindow; w != nil {
+		b.WriteString(renderBar("5h Limit", w.UsedPercent, bw,
+			fmt.Sprintf("resets %s (%s)", w.ResetTime().Local().Format("3:04 PM"), timeUntil(w.ResetTime())),
+		))
+		b.WriteByte('\n')
+	}
+	if w := u.RateLimit.SecondaryWindow; w != nil {
+		b.WriteString(renderBar("Weekly", w.UsedPercent, bw,
+			fmt.Sprintf("resets %s (%s)", w.ResetTime().Local().Format("Mon Jan 2 3:04 PM"), timeUntil(w.ResetTime())),
+		))
+		b.WriteByte('\n')
+	}
+	if w := u.CodeReviewRateLimit.PrimaryWindow; w != nil {
+		b.WriteString(renderBar("Code Review", w.UsedPercent, bw,
+			fmt.Sprintf("resets %s (%s)", w.ResetTime().Local().Format("Mon Jan 2 3:04 PM"), timeUntil(w.ResetTime())),
+		))
+		b.WriteByte('\n')
+	}
+
+	// b.WriteByte('\n')
+	return b.String()
+}
+
+func fetchCodexUsage(auth *codex.Auth) tea.Cmd {
+	return func() tea.Msg {
+		usage, err := codex.FetchUsage(auth)
+		return codexUsageMsg{usage: usage, err: err}
+	}
+}
