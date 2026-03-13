@@ -80,7 +80,7 @@ func renderORSummary(u *openrouter.Usage) string {
 		return ""
 	}
 	var b strings.Builder
-	b.WriteByte('\n')
+	// b.WriteByte('\n')
 	parts := make([]string, 0, 3)
 	if u.Credits != nil {
 		parts = append(parts, fmt.Sprintf("Credits $%.2f/$%.2f left", u.Credits.Remaining, u.Credits.Total))
@@ -88,9 +88,9 @@ func renderORSummary(u *openrouter.Usage) string {
 	if u.Activity != nil {
 		t := u.Activity.Totals
 		parts = append(parts, fmt.Sprintf("Spend $%.2f | %.0f req", t.Spend, t.Requests))
-		tokens := fmt.Sprintf("%s in + %s out", formatTokens(t.PromptTokens), formatTokens(t.CompletionTokens))
+		tokens := fmt.Sprintf("in %s/out %s", formatTokens(t.PromptTokens), formatTokens(t.CompletionTokens))
 		if t.ReasoningTokens > 0 {
-			tokens += fmt.Sprintf(" + %s reason", formatTokens(t.ReasoningTokens))
+			tokens += fmt.Sprintf(" +%s reason", formatTokens(t.ReasoningTokens))
 		}
 		parts = append(parts, tokens)
 	}
