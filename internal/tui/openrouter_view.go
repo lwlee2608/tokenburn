@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	maxModels = 8
+	maxModels = 7
 	maxKeys   = 10
 )
 
@@ -98,7 +98,7 @@ func renderORSummary(u *openrouter.Usage) string {
 }
 
 const (
-	chartMaxHeight = 16
+	chartMaxHeight = 12
 	chartMaxDays   = 30
 	chartTopModels = 6
 )
