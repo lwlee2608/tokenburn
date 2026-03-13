@@ -36,10 +36,10 @@ type orUsageMsg struct {
 type orRetryMsg struct{}
 
 type Model struct {
-	version      string
-	width        int
-	lastFetch    time.Time
-	orUIConfig   config.OpenRouterUIConfig
+	version    string
+	width      int
+	lastFetch  time.Time
+	orUIConfig config.OpenRouterUIConfig
 
 	codexAuth    *codex.Auth
 	codexUsage   *codex.Usage
@@ -214,7 +214,15 @@ func (m Model) codexSection() string {
 	u := m.codexUsage
 	bw := m.barWidth()
 
-	b.WriteString(dimStyle.Render(fmt.Sprintf("  Plan: %s", u.PlanType)))
+	credits := ""
+	if u.Credits.HasCredits {
+		bal := "n/a"
+		if u.Credits.Balance != nil {
+			bal = *u.Credits.Balance
+		}
+		credits = fmt.Sprintf(" | Credits: %s (unlimited: %v)", bal, u.Credits.Unlimited)
+	}
+	b.WriteString(dimStyle.Render(fmt.Sprintf("  Plan: %s%s", u.PlanType, credits)))
 	b.WriteByte('\n')
 	b.WriteByte('\n')
 
@@ -237,16 +245,7 @@ func (m Model) codexSection() string {
 		b.WriteByte('\n')
 	}
 
-	if u.Credits.HasCredits {
-		bal := "n/a"
-		if u.Credits.Balance != nil {
-			bal = *u.Credits.Balance
-		}
-		b.WriteString(dimStyle.Render(fmt.Sprintf("  Credits: %s (unlimited: %v)", bal, u.Credits.Unlimited)))
-		b.WriteByte('\n')
-	}
-
-	b.WriteByte('\n')
+	// b.WriteByte('\n')
 	return b.String()
 }
 
